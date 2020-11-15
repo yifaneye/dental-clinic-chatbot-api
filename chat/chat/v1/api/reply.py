@@ -53,3 +53,21 @@ class DentistsReply(Reply):
         dentists = [dentist['name'] for dentist in jsonResponse]
         dentistsString = '%s' % ', '.join(map(str, dentists))
         return f'We have {dentistsString}.'
+
+
+class DentistReply(Reply):
+    """A reply to user's request on information about a specific dentist"""
+
+    entityName = __qualname__
+
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+        self.url = f'http://0.0.0.0:8082/api/dentist/?name={name}'
+
+    def process_api_json_response(self):
+        jsonResponse = self.get_api_json_response()
+        if len(jsonResponse) == 0:
+            return f'We do not have {self.name}.'
+        dentist = jsonResponse[0]
+        return f'Dentist {dentist["name"]} works in {dentist["location"]} and specializes in {dentist["specialization"]}.'

@@ -18,5 +18,8 @@ def get_reply(message):
 	try:
 		if jsonResponse['intents'][0]['name'] == "getDentists":
 			return DentistsReply().get_reply()
+		elif jsonResponse['intents'][0]['name'] == "getDentistInformation":
+			name = jsonResponse['entities']['dentist:dentist'][0]['body']
+			return DentistReply(name).get_reply()
 	except:
 		return DEFAULT_REPLY
