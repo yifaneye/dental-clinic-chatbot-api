@@ -112,7 +112,7 @@ class UpdateTimeslotReply(Reply):
         self.startTime = startTime
         today = date.today().strftime("%Y-%m-%d")
         self.url = f'{TIMESLOT_API_BASE_PATH}/timeslots?dentist={name}&date={today}&startTime={startTime}'
-        self.urlBackup = f'{TIMESLOT_API_BASE_PATH}/timeslots?dentist={name}&date={today}'
+        self.urlBackup = f'{TIMESLOT_API_BASE_PATH}/timeslots?dentist={name}&date={today}&status=available'
 
     @staticmethod
     def get_api_json_response_alternative(url):
@@ -133,11 +133,11 @@ class UpdateTimeslotReply(Reply):
     def process_api_json_response(self):
         jsonResponse = self.get_api_json_response()
         if len(jsonResponse) == 0:
-            jsonResponseBackup = self.get_api_json_response_alternative(self.urlBackup)
             standardReply = f'We do not have dentist {self.name} working at {self.startTime} today.'
+            jsonResponseBackup = self.get_api_json_response_alternative(self.urlBackup)
             if self.action == 'reserve' and len(jsonResponseBackup) >= 1:
                 timeSlotBackup = jsonResponseBackup[0]
-                return f'{standardReply} I suggest with Dentist {self.name}\'s 1-hour timeslot that start on {timeSlotBackup["startTime"]} o\'clock today.'
+                return f'{standardReply} I suggest with dentist {self.name}\'s 1-hour timeslot that start on {timeSlotBackup["startTime"]} o\'clock today.'
             return standardReply
         timeslot = jsonResponse[0]
         url = f'{TIMESLOT_API_BASE_PATH}/timeslots/{timeslot["id"]}'
@@ -146,6 +146,12 @@ class UpdateTimeslotReply(Reply):
             response = self.patch_api_json_response_alternative(url, data=timeslot)
             return f'I {response} cancel the reservation with dentist {self.name} at {self.startTime} for you.'
         elif self.action == 'reserve':
+            if timeslot['status'] == 'reserved':
+                jsonResponseBackup = self.get_api_json_response_alternative(self.urlBackup)
+                if len(jsonResponseBackup) == 0:
+                    return f'All timeslots with {self.name} are reserved. Please come back tomorrow.'
+                timeSlotBackup = jsonResponseBackup[0]
+                return f'Timeslot with dentist {self.name} that start on {self.startTime} got reserved today. I suggest with dentist {self.name}\'s 1-hour timeslot that start on {timeSlotBackup["startTime"]} o\'clock today.'
             timeslot['status'] = 'reserved'
             response = self.patch_api_json_response_alternative(url, data=timeslot)
             return f'I {response} reserve the reservation with dentist {self.name} at {self.startTime} for you.'
